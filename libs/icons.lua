@@ -126,6 +126,30 @@ local function LoadTexture(textureName)
     return textures;
 end
 
+-- ImGui API compatibility -----------------------------------------------------
+-- Ashita 4.3 moved to Dear ImGui 1.92, which changed the image API:
+--   Image(tex, size, uv0, uv1)                          (tint/border args removed)
+--   ImageButton(str_id, tex, size, uv0, uv1, bg, tint)  (str_id first, no frame_padding)
+-- Older Ashita (ImGui 1.8x) keeps the legacy signatures. ImageWithBg only exists in
+-- the new API, so its presence is used as the version probe.
+local NEW_IMAGE_API = (imgui.ImageWithBg ~= nil);
+
+local function DrawImage(textureId, size, uv0, uv1, tint, border)
+    if NEW_IMAGE_API then
+        imgui.Image(textureId, size, uv0, uv1);
+    else
+        DrawImage(textureId, size, uv0, uv1, tint, border);
+    end
+end
+
+local function DrawImageButton(id, textureId, size, uv0, uv1, bg, tint)
+    if NEW_IMAGE_API then
+        return imgui.ImageButton(id, textureId, size, uv0, uv1, bg, tint);
+    end
+    -- legacy: textureId, size, uv0, uv1, frame_padding, bg_color, tint_color
+    return imgui.ImageButton(textureId, size, uv0, uv1, -1, bg, tint);
+end
+
 -- Get or load an icon by name
 function M.GetIcon(iconName)
     -- Return from cache if already loaded
@@ -179,7 +203,7 @@ function M.RenderIcon(iconName, width, height, tintColor)
     local tint = tintColor or { 1, 1, 1, 1 };
     local border = { 0, 0, 0, 0 };
     
-    imgui.Image(textureId, size, uv0, uv1, tint, border);
+    DrawImage(textureId, size, uv0, uv1, tint, border);
     return true;
 end
 
@@ -232,7 +256,7 @@ function M.RenderIconButton(iconName, width, height, tooltip, tintColor)
     
     -- ImageButton: textureId, size, uv0, uv1, frame_padding, bg_color, tint_color
     -- frame_padding = -1 means use FramePadding style var (default padding)
-    local clicked = imgui.ImageButton(textureId, {w, h}, {0, 0}, {1, 1}, -1, {0, 0, 0, 0}, tint);
+    local clicked = DrawImageButton("##icon_btn_" .. iconName, textureId, {w, h}, {0, 0}, {1, 1}, {0, 0, 0, 0}, tint);
     
     -- Pop styles and ID
     imgui.PopStyleVar(1);
@@ -301,7 +325,7 @@ function M.RenderIconButtonWithSize(iconName, buttonWidth, buttonHeight, tooltip
     imgui.PushStyleVar(ImGuiStyleVar_FrameRounding, 4);
     
     -- ImageButton: textureId, size, uv0, uv1, frame_padding, bg_color, tint_color
-    local clicked = imgui.ImageButton(textureId, {imgW, imgH}, {0, 0}, {1, 1}, -1, {0, 0, 0, 0}, tint);
+    local clicked = DrawImageButton("##icon_btn_" .. iconName, textureId, {imgW, imgH}, {0, 0}, {1, 1}, {0, 0, 0, 0}, tint);
     
     -- Pop styles and ID
     imgui.PopStyleVar(2);

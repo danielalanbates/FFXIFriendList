@@ -36,6 +36,30 @@ require('common')
 -- Load imgui (required before d3d_present registration)
 require('imgui')
 
+-- Ashita 4.3 (Dear ImGui 1.92) compatibility ---------------------------------
+-- 1) LuaJIT: with the JIT enabled, the first draw of the friend list intermittently
+--    faults inside Addons.dll (LuaJIT lj_mcode_patch walking a NULL MCode-area chain,
+--    EXCEPTION_ACCESS_VIOLATION in d3d_present), which makes Ashita unload the addon
+--    (and sometimes every addon). Running interpreted costs nothing noticeable here.
+if jit and jit.off then
+    jit.off()
+end
+-- 2) imgui.BeginChild(id, size, border) now takes ImGuiChildFlags (int) instead of a
+--    boolean border, so a boolean third argument raises "sol: no matching function call".
+--    Normalise here once so the rest of the addon keeps its existing calls.
+do
+    local imgui = require('imgui')
+    if imgui.ImageWithBg ~= nil then -- ImGui >= 1.91: new-style API
+        local BeginChild = imgui.BeginChild
+        imgui.BeginChild = function(id, size, border, flags)
+            if type(border) == 'boolean' then
+                border = border and 1 or 0 -- ImGuiChildFlags_Borders
+            end
+            return BeginChild(id, size or {0, 0}, border or 0, flags or 0)
+        end
+    end
+end
+
 -- Load core modules
 -- config module removed - using libs.settings directly
 local moduleRegistry = require('core.moduleregistry')
