@@ -15,6 +15,37 @@ No donations, payments, subscriptions, or other financial contributions are acce
 
 # FFXIFriendList
 
+## About this fork (Ashita 4.3 / HorizonXI)
+
+This is [Tanyrus/FFXIFriendList](https://github.com/Tanyrus/FFXIFriendList) with the fixes needed to
+run on **Ashita 4.3** (Dear ImGui 1.92), which HorizonXI ships since August 2026. Upstream is
+currently broken there ([#18](https://github.com/Tanyrus/FFXIFriendList/issues/18)); the fixes are
+submitted upstream as [PR #19](https://github.com/Tanyrus/FFXIFriendList/pull/19) and this fork tracks
+that branch until they land.
+
+**What it is.** A PlayOnline-style friend list for private servers: mutual-consent friend requests,
+online/away/invisible presence, optional job/zone sharing, block list, notes and tags, toast
+notifications, controller support.
+
+**How it works.** FFXI's own friend list was a PlayOnline Viewer feature — the game client never
+asks the world server for friend data, so no server-side change on LandSandBoat can light it up. This
+addon instead talks to a small friend-list service over HTTPS/WebSocket (`api2.horizonfriendlist.com`,
+run by the upstream author). Only in-game data is sent: character name and realm, friend
+relationships and requests, presence heartbeats, and — if you opt in — job, nation, rank and zone.
+No account credentials, no packet injection, no reads or writes to game memory beyond the player's
+own name/job/zone. It renders with Ashita's ImGui and intercepts only its own commands
+(`/fl`, `/befriend`).
+
+**What changed in this fork** (`FFXIFriendList.lua`, `libs/icons.lua`):
+- `imgui.BeginChild` boolean `border` → `ImGuiChildFlags`, chosen at runtime by probing for the new API.
+- `imgui.Image` / `imgui.ImageButton` new signatures (icons rendered as dots before).
+- `jit.off()` — the LuaJIT trace patcher intermittently faulted inside `Addons.dll` on first draw and
+  Ashita unloaded the addon (and sometimes all addons). Interpreted mode is more than fast enough here.
+
+Legacy Ashita builds keep the original code paths unchanged.
+
+![friend list in game](docs/friendlist-in-game.png)
+
 A comprehensive friend list management addon for FFXI private servers using the Ashita v4 framework. This addon provides real-time friend status tracking, account-based character linking, notes (local), and more through a modern ImGui interface.
 
 ## Features
